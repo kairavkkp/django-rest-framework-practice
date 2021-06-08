@@ -20,7 +20,6 @@ class PaymentMethod(models.Model):
 class KSUser(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     bio = models.TextField(null=True, blank=True)
-    username = models.CharField(max_length=20)
     payment_method = models.OneToOneField(
         PaymentMethod, on_delete=models.CASCADE)
 

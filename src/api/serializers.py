@@ -1,13 +1,18 @@
 from rest_framework import fields, serializers
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+
 from api.models import KSUser, Game, GameCategory, PaymentMethod, \
     Price, Order, Wishlist, Library
+from api.exceptions import UsernameAlreadyExists
+
 from django.contrib.auth.models import User
 
 
-class CreateUserSerializer(serializers.ModelSerializer):
+class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'username', 'password']
+        fields = ['email', 'username', 'password', 'bio']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -17,6 +22,11 @@ class CreateUserSerializer(serializers.ModelSerializer):
         )
         user.set_password(validated_data['password'])
         user.save()
+        KSUser.objects.create(
+            user=user,
+            bio=validated_data['bio'],
+            payment_method=None
+        )
         return user
 
 
