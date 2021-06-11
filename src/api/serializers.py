@@ -9,10 +9,16 @@ from api.exceptions import UsernameAlreadyExists
 from django.contrib.auth.models import User
 
 
+class KSUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KSUser
+        fields = '__all__'
+
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['email', 'username', 'password', 'bio']
+        fields = ['email', 'username', 'password']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
@@ -21,19 +27,8 @@ class UserSerializer(serializers.ModelSerializer):
             username=validated_data['username']
         )
         user.set_password(validated_data['password'])
-        user.save()
-        KSUser.objects.create(
-            user=user,
-            bio=validated_data['bio'],
-            payment_method=None
-        )
+
         return user
-
-
-class KSUserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = KSUser
-        fields = '__all__'
 
 
 class GameSerializer(serializers.ModelSerializer):

@@ -5,5 +5,5 @@ from api.views import UserCreate
 
 urlpatterns = [
     path('login/', views.obtain_auth_token),
-    path('account/create/', UserCreate),
+    path('account/create/', UserCreate.as_view()),
 ]
