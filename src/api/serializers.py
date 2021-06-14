@@ -1,13 +1,51 @@
-from django.contrib.auth import models
+from django.contrib.auth import authenticate, models
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404
+
 from rest_framework import fields, serializers, status
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
+from rest_framework.exceptions import ValidationError
 
 from api.models import KSUser, Game, GameCategory, PaymentMethod, \
     Price, Order, Wishlist, Library
 from api.exceptions import UsernameAlreadyExists
 
-from django.contrib.auth.models import User
+from api.utils import validateEmail
+
+
+# Help from :
+# https://stackoverflow.com/questions/28058326/django-rest-framework-obtain-auth-token-using-email-instead-username
+class LoginSerializer(serializers.Serializer):
+    email_or_username = serializers.CharField()
+    password = serializers.CharField()
+
+    def validate(self, attrs):
+        email_or_username = attrs.get('email_or_username')
+        password = attrs.get('password')
+
+        if email_or_username and password:
+            if validateEmail(email_or_username):
+                user_request = get_object_or_404(
+                    User, email=email_or_username
+                )
+
+                email_or_username = user_request.username
+
+            user = authenticate(username=email_or_username, password=password)
+            if user:
+                if not user.is_active:
+                    msg = 'User account is disabled.'
+                    raise ValidationError(msg)
+            else:
+                msg = 'Unable to log in with provided credentials.'
+                raise ValidationError(msg)
+        else:
+            msg = 'Must include "email or username" and "password"'
+            raise ValidationError(msg)
+
+        attrs['user'] = user
+        return attrs
 
 
 class PaymentMethodSerializer(serializers.ModelSerializer):
@@ -29,11 +67,11 @@ class KSUserSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     ksuser = KSUserSerializer()
-    email = serializers.EmailField()
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'ksuser']
+        fields = ['username', 'email', 'password', 'ksuser']
+        extra_kwargs = {'password': {'write_only': True}}
 
     def validate_email(self, value):
         lower_email = value.lower()
@@ -43,8 +81,17 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         ksuser_data = validated_data.pop('ksuser')
-        user = User.objects.create(**validated_data)
-        KSUser.objects.create(user=user, **ksuser_data)
+        user = User.objects.create(
+            username=validated_data['username'],
+            email=validated_data['email']
+        )
+        user.set_password(validated_data['password'])
+        user.active = True
+        user.staff = False
+        user.admin = False
+        user.save()
+        ksuser = KSUser.objects.create(user=user, **ksuser_data)
+        ksuser.save()
         return user
 
 
