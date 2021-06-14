@@ -29,10 +29,17 @@ class KSUserSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     ksuser = KSUserSerializer()
+    email = serializers.EmailField()
 
     class Meta:
         model = User
         fields = ['username', 'email', 'ksuser']
+
+    def validate_email(self, value):
+        lower_email = value.lower()
+        if User.objects.filter(email__iexact=lower_email).exists():
+            raise serializers.ValidationError("Email Already Exists!")
+        return lower_email
 
     def create(self, validated_data):
         ksuser_data = validated_data.pop('ksuser')
