@@ -4,6 +4,8 @@ from django.db.models.base import Model
 
 import json
 
+from django.db.models.fields import related
+
 
 class PaymentMethod(models.Model):
     SUPPORTED_METHODS = (
@@ -21,10 +23,10 @@ class KSUser(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     bio = models.TextField(null=True, blank=True)
     payment_method = models.OneToOneField(
-        PaymentMethod, on_delete=models.CASCADE)
+        PaymentMethod, on_delete=models.CASCADE, null=True, blank=True)
 
     def __str__(self):
-        return '%s : %s' % (self.username, str(self.user.id))
+        return '%s : %s' % (self.user.username, str(self.user.id))
 
 
 class GameCategory(models.Model):
@@ -77,7 +79,7 @@ class Order(models.Model):
         unique_together = ['ksuser', 'game']
 
     def __str__(self):
-        return '%s: %s' % (self.ksuser.username, self.game.name)
+        return '%s: %s' % (self.ksuser.user.username, self.game.name)
 
 
 class Wishlist(models.Model):
@@ -88,7 +90,7 @@ class Wishlist(models.Model):
         unique_together = ['ksuser', 'game']
 
     def __str__(self):
-        return '%s: %s' % (self.ksuser.username, self.game.name)
+        return '%s: %s' % (self.ksuser.user.username, self.game.name)
 
 
 class Library(models.Model):

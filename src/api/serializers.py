@@ -1,4 +1,5 @@
-from rest_framework import fields, serializers
+from django.contrib.auth import models
+from rest_framework import fields, serializers, status
 from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 
@@ -9,25 +10,34 @@ from api.exceptions import UsernameAlreadyExists
 from django.contrib.auth.models import User
 
 
-class KSUserSerializer(serializers.ModelSerializer):
+class PaymentMethodSerializer(serializers.ModelSerializer):
+
+    name = serializers.CharField(max_length=15)
+    customer_id = serializers.CharField(
+        max_length=20, allow_null=True, allow_blank=True)
+
     class Meta:
-        model = KSUser
+        model = PaymentMethod
         fields = '__all__'
 
 
+class KSUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = KSUser
+        fields = ['bio', 'payment_method']
+
+
 class UserSerializer(serializers.ModelSerializer):
+    ksuser = KSUserSerializer()
+
     class Meta:
         model = User
-        fields = ['email', 'username', 'password']
-        extra_kwargs = {'password': {'write_only': True}}
+        fields = ['username', 'email', 'ksuser']
 
     def create(self, validated_data):
-        user = User(
-            email=validated_data['email'],
-            username=validated_data['username']
-        )
-        user.set_password(validated_data['password'])
-
+        ksuser_data = validated_data.pop('ksuser')
+        user = User.objects.create(**validated_data)
+        KSUser.objects.create(user=user, **ksuser_data)
         return user
 
 
